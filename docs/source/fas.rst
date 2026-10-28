@@ -131,6 +131,8 @@ Example scripts
 
 Full details of how to use FAS query strings can be seen in the example scripts, fas-hid.php, fas-aes.php and fas-aes-https.php
 
+This tree also includes ``forward_authentication_service/fas-lark/``, a level-1 FAS that sends a short-lived code through a Feishu (飞书) or international Lark bot and then returns the usual ``sha256(hid + faskey)`` token to ``/opennds_auth/``. It does not replace the default ThemeSpec scripts. See that directory's README for the openNDS options and environment variables.
+
 Custom Parameters
 *****************
 

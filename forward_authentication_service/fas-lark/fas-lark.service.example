@@ -1,0 +1,17 @@
+[Unit]
+Description=openNDS Feishu/Lark one-time-code portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/opennds/fas-lark.env
+ExecStart=/usr/bin/python3 /usr/lib/opennds/fas-lark/fas_lark.py
+Restart=on-failure
+NoNewPrivileges=true
+# Keeps the OTP file inside the service's private /tmp. Set OTP_STORE_PATH
+# outside /tmp and turn this off if you want the file elsewhere.
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

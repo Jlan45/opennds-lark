@@ -3,3 +3,7 @@
 /dist
 /docs/build
 *.o
+forward_authentication_service/fas-lark/fas-lark.env
+forward_authentication_service/fas-lark/*.local.env
+__pycache__/
+*.pyc

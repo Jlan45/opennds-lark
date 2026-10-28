@@ -85,6 +85,50 @@ For full documentation please see https://opennds.rtfd.io/
 
 You can select either *Stable*, *Latest* or the historical documentation of *older versions*.
 
+## 8. Feishu / Lark one-time code (this fork)
+
+本分支在 `forward_authentication_service/fas-lark/` 增加了一个独立的 FAS，不改默认 ThemeSpec。用户在门户里填写飞书邮箱、手机号或 open_id / user_id / union_id，网关侧脚本向飞书（或国际版 Lark）机器人发一条短时验证码；验证通过后，按 openNDS level 1 的既有握手提交 `tok = sha256(hid + faskey)` 到 `http://<gatewayaddress>/opennds_auth/`。
+
+验证码是机器人私聊，不是短信。对方必须是本企业通讯录里的用户，并且落在应用可用范围内。
+
+### 飞书应用
+
+1. 在 [飞书开放平台](https://open.feishu.cn/app) 创建企业自建应用，并启用机器人。国际版 Lark 用 [open.larksuite.com](https://open.larksuite.com/app)，接口路径相同。
+2. 开通权限 **im:message:send_as_bot**（以应用身份发消息）。用手机号查找，或把 `FEISHU_RESOLVE_EMAIL=1` 时，再开通 **contact:user.id:readonly**（通过手机号或邮箱获取用户 ID）。
+3. 把可用范围设为需要上网的成员，创建版本并发布，等待管理员通过。
+4. 事件订阅用的 Verification Token 和 Encrypt Key 可以留空。发送验证码用不到它们；如果已经有这两个值，放进环境变量，不要写进代码。
+
+### 环境变量与运行
+
+复制 `forward_authentication_service/fas-lark/fas-lark.env.example` 为 `/etc/opennds/fas-lark.env`（权限 `0600`）。至少填入：
+
+| 变量 | 作用 |
+| --- | --- |
+| `OPENNDS_FASKEY` | 与 openNDS `option faskey` 完全相同，仅字母和数字 |
+| `FEISHU_APP_ID` / `FEISHU_APP_SECRET` | 应用凭证 |
+| `FEISHU_API_BASE` | 飞书 `https://open.feishu.cn`，Lark `https://open.larksuite.com` |
+| `FAS_PORT` | 默认 `2080`，不要用 80 |
+
+在网关或一台不被门户拦截的局域网主机上：
+
+```
+python3 fas_lark.py --check
+python3 fas_lark.py --check-feishu
+python3 fas_lark.py
+```
+
+标准库即可，不需要额外的 Python 包。FAS 进程访问飞书；客户端不需要把 `open.feishu.cn` 放进 walled garden，也不要把 2080 映射到公网。
+
+### openNDS
+
+`fas_secure_enabled` 必须是 **1**。网关本机运行时，`fasremoteip` 要等于网关 LAN 地址，`fasremotefqdn` 要等于 `gatewayfqdn`（默认 `status.client`），否则 ndsRTR 链末尾的 reject 会丢掉 2080。同时加上 `list users_to_router 'allow tcp port 2080'`。`login_option_enabled` 设为 `0`，避免继续走默认 ThemeSpec。可粘贴的片段在 `forward_authentication_service/fas-lark/opennds.conf.snippet`。
+
+完整步骤、演练模式和冒烟清单见 `forward_authentication_service/fas-lark/README.md`。
+
+### English
+
+The level-1 FAS under `forward_authentication_service/fas-lark/` asks for a Feishu/Lark identity, sends a one-time code in the bot chat, and on success serves the same auth form as `fas-hid.php`: `tok` is `sha256(hid + faskey)` posted to `http://<gatewayaddress>/opennds_auth/`. Default ThemeSpec scripts are unchanged. Set `fas_secure_enabled` to `1`, keep `OPENNDS_FASKEY` identical to `option faskey`, and use `https://open.feishu.cn` or `https://open.larksuite.com`. App credentials, the verification token, and the encrypt key are environment variables. The operational guide and smoke checklist are in `forward_authentication_service/fas-lark/README.md`.
+
 ---
 
 

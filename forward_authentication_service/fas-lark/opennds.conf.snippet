@@ -1,0 +1,55 @@
+# Paste inside the existing "config opennds 'setup'" block of /etc/config/opennds.
+# The same lines are what OpenWrt UCI stores. Do not leave fasport at the
+# default 443: together with login_option_enabled > 0 that selects ThemeSpec,
+# and with both FAS addresses left "disabled" openNDS rewrites fasport to the
+# gateway port.
+#
+# fas_secure_enabled 1 is required. This FAS reads the level-1 base64 "fas"
+# query (the same encoding as fas-hid.php) and returns sha256(hid + faskey).
+# It does not implement level 2/3 AES or level 4 authmon.
+#
+# Same-gateway FAS (the usual case)
+# ---------------------------------
+# fasremoteip MUST be the gateway LAN address openNDS binds (not 127.0.0.1).
+# fasremotefqdn MUST equal gatewayfqdn (the default is status.client).
+# Those two equalities are what make openNDS accept TCP 2080 on ndsRTR.
+# The users_to_router rule is the visible allow in front of that chain's
+# final reject. Port 80 cannot be used for a local FAS.
+#
+#   uci set opennds.@opennds[0].login_option_enabled='0'
+#   uci set opennds.@opennds[0].fasport='2080'
+#   uci set opennds.@opennds[0].faspath='/'
+#   uci set opennds.@opennds[0].fasremoteip='192.168.1.1'
+#   uci set opennds.@opennds[0].fasremotefqdn='status.client'
+#   uci set opennds.@opennds[0].fas_secure_enabled='1'
+#   uci set opennds.@opennds[0].faskey='<same value as OPENNDS_FASKEY>'
+#   uci add_list opennds.@opennds[0].users_to_router='allow tcp port 2080'
+#   uci commit opennds
+#   service opennds restart
+
+	option login_option_enabled '0'
+	option fasport '2080'
+	option faspath '/'
+	option fasremoteip '192.168.1.1'
+	option fasremotefqdn 'status.client'
+	option fas_secure_enabled '1'
+	option faskey 'CHANGEMECHANGEMECHANGEMECHANGEME'
+	list users_to_router 'allow tcp port 2080'
+
+# FAS on another LAN host (not behind the captive portal)
+# -------------------------------------------------------
+# Set fasremoteip to that host. Leave fasremotefqdn disabled so the redirect
+# uses the IP and preauthenticated clients are allowed to reach it.
+# Do not add the users_to_router port in that case; it is a router-input rule.
+#
+#	option fasremoteip '192.168.1.20'
+#	option fasremotefqdn 'disabled'
+#	option fasport '2080'
+#	option faspath '/'
+#	option fas_secure_enabled '1'
+
+# Restore the default ThemeSpec portal
+# -------------------------------------
+#   uci set opennds.@opennds[0].login_option_enabled='1'
+#   uci delete opennds.@opennds[0].fasport
+#   uci commit opennds && service opennds restart
